@@ -1,0 +1,57 @@
+---
+title: "Linear Regression on Subsets"
+output:
+  html_notebook: default
+  html_document: default
+  pdf_document: default
+---
+This is an analysis on linear regression of subsets of a sample population. We want to predict the true function of a data set given a sample population. First, we create a sample dataset with the known true function and its error term.
+
+```{r}
+size = 100
+min_range = 0
+max_range = 100
+standard_deviation = 50
+slope = 2
+y_int = 0
+
+randomSampleDataSet = function (s, minr, maxr, m, y_int, sd) {
+  x = runif(s, minr, maxr)
+  y = x*m + rnorm(s, sd=sd) + y_int
+  df = data.frame(x,y)
+  return(df)
+}
+
+df = randomSampleDataSet(size, min_range, max_range, slope, y_int, standard_deviation)
+plot(df)
+abline(y_int, slope, col='red')
+```
+The sample data set is generated with the red line representing the true function. Next we fit 5 lines, each knowing 20% of the previously generated sample data set.
+
+```{r}
+number_of_fits = 5
+percent_of_dataset = 0.2
+
+createFits = function(n, pct, data){
+  fits = list()
+  for(i in 1:n){
+    num_rows = nrow(data) * percent_of_dataset  
+    randRows = data[sample(nrow(data), num_rows),] 
+    fits[[i]] = lm(y ~ x, data = randRows)
+  }
+  return(fits)
+}
+
+plotFits = function(fits, data){
+  plot(data)
+  for(i in 1:length(fits)){
+     abline(fits[[i]], col='blue')   
+  }
+}
+
+fits = createFits(number_of_fits, percent_of_dataset, df)
+
+plotFits(fits, df)
+abline(lm(y ~ x, data = df), col="green")
+abline(y_int, slope, col='red')
+```
