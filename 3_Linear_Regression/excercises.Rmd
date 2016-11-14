@@ -1,0 +1,170 @@
+---
+title: "Exercises"
+output:
+  html_document: default
+  html_notebook: default
+---
+Import libraries and attach
+```{r}
+library(ISLR)
+library(car)
+attach(Auto)
+```
+##Excercise 8
+```{r}
+fit1 = lm(mpg ~ horsepower)
+summary(fit1)
+```
+##8.a.i
+
+There is a relationship between horsepower and mpg because there is low p-value
+
+###8.a.ii
+
+The relationship is very strong. p-value is very close to zero, denoted by ***.
+
+###8.a.iii
+
+The relationship is negative because Estimate is negative (-0.15)
+
+```{r}
+#Prediction
+predict(fit1, data.frame(horsepower=98), interval='prediction')
+#Confidence
+predict(fit1, data.frame(horsepower=98), interval='confidence')
+```
+###8.a.iv
+
+For HP of 98, Predicted 24.5mpg. Confidence and Prediction intervals above
+
+###8.b
+```{r}
+plot(horsepower,mpg)
+abline(fit1, col='red')
+```
+
+###8.c
+```{r}
+par(mfrow=c(2,2))
+plot(fit1)
+```
+
+###8.c
+There is a non-linear pattern in the fitted values that follows a parabola trajectory.
+
+##Execise 9
+###9.a
+```{r}
+plot(Auto)
+```
+
+###9.b
+```{r}
+cor(subset(Auto, select=-name))
+```
+###9.c
+```{r}
+fit2=lm(mpg~.-name, data=Auto)
+summary(fit2)
+```
+###9.c.i
+
+Yes, overall p-value is statistically significant
+
+###9.c.ii
+
+Displacement, weight, year, and origin are statistically significant
+
+###9.c.iii
+
+The coefficient is 0.75 which suggest improved mpg per year
+
+###9.d
+```{r}
+par(mfrow=c(2,2))
+plot(fit2)
+```
+
+There is a parabolic pattern in the Residual vs Fitted values graph suggesting non-linearity. The residual plot does have observations with unusually large leverage (14) and outliers (327, 394). 
+
+###9.e
+
+From the correlation table we can see that there is strong indication of correlation between cylinders, displacement, acceleration, and weight. We will use these predictors as interactions.
+```{r}
+fit3=lm(formula = mpg ~ . + displacement * acceleration * cylinders * weight * horsepower - name, data = Auto)
+summary(fit3)
+```
+
+Acceleration and horsepower have the greatest interaction. Our R-squared values improved by using this model. Let's examine the residuals vs fitted value graph.
+
+```{r}
+par(mfrow=c(2,2))
+plot(fit3)
+```
+
+There does not seem to be any noticable pattern in the residuals vs fitted graph suggesting the correlation fits the data. However, a funnel shape is present in the residual graph which is a sign of heteroscedasticity, meaning the magnitude of residuals tends to increase with the fitted values. 
+
+###9.f
+
+Because of heteroscedasticity, perhaps logging the response may improve the model.
+
+```{r}
+fit4=lm(log(mpg) ~ . + displacement * acceleration * weight * horsepower * cylinders - name, data = Auto)
+par(mfrow=c(2,2))
+summary(fit4)
+plot(fit4)
+```
+
+The residual graph has slightly less heteroscedasticity. Our model also has a better R-squared value. However, I am afraid with so many generated features, this model might overfit.
+
+The previous model (fit4), has many features and as expected, diluted the p-value. There were many collinear features.
+I want to use the least amount of predictors as possible so after fooling around with the data, I noticed persistent correlation in many of my models, especially displacement:weight and cylinders:horsepower:acceleration.
+```{r}
+fit5=lm(log(mpg) ~. + displacement:weight + cylinders:horsepower:acceleration - name, data = Auto)
+par(mfrow=c(2,2))
+summary(fit5)
+```
+
+Notice that origin and horsepower contributes little to reducing variance. These predictors, if removed will have little impact on R-squared
+
+```{r}
+fit6=lm(log(mpg) ~. + displacement:weight + cylinders:horsepower:acceleration - name - horsepower - origin, data = Auto)
+par(mfrow=c(2,2))
+summary(fit6)
+```
+
+So with the removal of origin and horsepower, we kept relatively the same R-squared and simplified our model. Let's examine the variance inflation factor for further collinearity in our model
+
+```{r}
+vif(fit6)
+```
+There is high VIF values for displacement:weight and displacement. Perhaps these two predictors are still too closely related. Let's try removing displacement to reduce redundant predictors
+
+```{r}
+fit7=lm(log(mpg) ~. + displacement:weight + cylinders:horsepower:acceleration - name - horsepower - origin - displacement, data = Auto)
+par(mfrow=c(2,2))
+summary(fit7)
+vif(fit7)
+```
+
+After removing the displacement predictor, there is a significant decrease in VIF values but also decrease in our R-squared value from 0.8946 to 0.8836. I think this is a significant decrease so I will stick with model fit6.
+
+##Excercise 10
+###10.a
+```{r}
+csfit = lm(Sales ~ Price + Urban + US, data=Carseats)
+summary(csfit)
+```
+
+Price: Statistically important bc low p-value
+Urban: not important
+US: Statistically important when located in US bc low p-value
+
+###10.c
+y_hat = B_0 + B_1 * Price + B_2 * UrbanYes + B_3 * USYes
+
+###10.d
+I can reject the null hypothesis for predictors Price & US
+
+###10.e
+
