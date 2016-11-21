@@ -167,4 +167,105 @@ y_hat = B_0 + B_1 * Price + B_2 * UrbanYes + B_3 * USYes
 I can reject the null hypothesis for predictors Price & US
 
 ###10.e
+```{r}
+csfit2 = lm(Sales ~ Price + US, data=Carseats)
+summary(csfit2)
+```
+###10.f
+Model in 10.e fits better than the 10.a model because Adujusted R-squared value increased after removing the insignificant Urban predictor.
+
+###10.g
+```{r}
+confint(csfit2)
+```
+###10.h
+```{r}
+par(mfrow=c(2,2))
+plot(csfit2)
+```
+Yes there are some outliers and one significant high leverage observation. 
+
+##11
+```{r}
+set.seed(1)
+x=rnorm(100)
+y=2*x+rnorm(100)
+```
+
+###11.a
+Perform fit without intercep
+```{r}
+rfit = lm(y~x+0)
+plot(x,y)
+abline(rfit)
+par(mfrow=c(2,2))
+plot(rfit)
+```
+High residual towards the mean of x predictor. Leverage fairly low and standardized residual within range of -2 to 2, so there are no extreme outliers.
+```{r}
+summary(rfit)
+```
+^B = 1.9939
+standard error = 0.1065
+t-statistics = 18.73
+p-value = <2e-16
+
+###11.b
+```{r}
+rfit2 = lm(x~y+0)
+plot(y,x)
+abline(rfit2)
+par(mfrow=c(2,2))
+plot(rfit2)
+```
+```{r}
+summary(rfit2)
+```
+###11.c
+Mostly everything is the same. Except the ^B value and the standard error related to the cooefficient estimate.
+
+###11.d
+```{r}
+sqrt(length(x) - 1) * sum(x*y) / sqrt(sum(x^2) * sum(y^2) - sum(x*y)^2)
+```
+###11.e
+```{r}
+rfit3 = lm(y~x)
+rfit4 = lm(x~y)
+summary(rfit3)
+summary(rfit4)
+```
+##12
+###12.a
+When sum of y^2 == sum of x^2
+
+###12.b
+```{r}
+x2 = rnorm(100)
+y2 = x2*x2 + rnorm(100)
+rfit5 = lm(y2 ~ x2)
+rfit6 = lm(x2 ~ y2)
+summary(rfit5)
+summary(rfit6)
+```
+^B estimate of lm(y2 ~ x2) = -0.08651
+^B estimate of lm(x2 ~ y2) = -0.02696
+
+###12.c
+```{r}
+x3 = rnorm(100)
+rand50 = rnorm(50)
+y3 = x3
+y3[1:50] = y3[1:50] + rand50
+y3[50:100] = y3[50:100] - rand50
+x3[1:50] = x3[1:50] + rand50
+x3[50:100] = x3[50:100] - rand50
+sum(y3^2)
+sum(x3^2)
+rfit7 = lm(y3 ~ x3)
+rfit8 = lm(x3 ~ y3)
+summary(rfit7)
+summary(rfit8)
+plot(x3, y3)
+```
 
