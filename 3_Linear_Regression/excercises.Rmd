@@ -253,19 +253,25 @@ summary(rfit6)
 
 ###12.c
 ```{r}
+set.seed(1)
 x3 = rnorm(100)
-rand50 = rnorm(50)
-y3 = x3
-y3[1:50] = y3[1:50] + rand50
-y3[50:100] = y3[50:100] - rand50
-x3[1:50] = x3[1:50] + rand50
-x3[50:100] = x3[50:100] - rand50
+y3 = x3 + rnorm(100)
+
+# Add difference to x3
+x3 = c(x3, sqrt(sum(y3^2) - sum(x3^2)))
+y3 = c(y3, 0)
+
 sum(y3^2)
 sum(x3^2)
-rfit7 = lm(y3 ~ x3)
-rfit8 = lm(x3 ~ y3)
+rfit7 = lm(y3 ~ x3 + 0)
+rfit8 = lm(x3 ~ y3 + 0)
 summary(rfit7)
 summary(rfit8)
 plot(x3, y3)
 ```
+As expected the coefficient estimate is the same. The offlier is the differential point to equalize sum of x^2 to sum of y^2
+
+##13
+
+
 
