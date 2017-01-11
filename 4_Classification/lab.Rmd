@@ -35,4 +35,44 @@ Year and volume have the highest correlation
 attach(Smarket)
 plot(Volume)
 ```
+##4.6.2 - Logistic Regression
+Use glm fit w/ Lag1-Lag5 and Volume
+```{r}
+glm.fit=glm(Direction~Lag1+Lag2+Lag3+Lag4+Lag5+Volume, data=Smarket, family=binomial)
+summary(glm.fit)
+```
+```{r}
+coef(glm.fit)
+summary(glm.fit)$coef
+```
+Looking at the 'Pr(>|z|)' column
+```{r}
+summary(glm.fit)$coef[,4]
+```
+```{r}
+glm.probs = predict(glm.fit, type="response")
+glm.probs[1:10]
+```
+Verifying R input dummy variables
+```{r}
+contrasts(Direction)
+```
+Make 1250 items vector down. Populate those with > .5 to "Up"
+```{r}
+glm.pred=rep("Down", 1250)
+glm.pred[glm.probs > 0.5] = "Up"
+```
+
+```{r}
+table(glm.pred, Direction)
+mean(glm.pred==Direction)
+```
+Down down and up up are the correct answers
+###Split to train and test
+```{r}
+train=(Year<2005)
+Smarket.2005=Smarket[!train,]
+dim(Smarket.2005)
+Direction.2005=Direction[!train]
+```
 
