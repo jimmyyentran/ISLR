@@ -106,3 +106,14 @@ Now we predict on Lag1 and Lag2.
 predict(glm.fit, newdata = data.frame(Lag1=c(1.2,1.5), Lag2=c(1.1, -0.8)), type="response")
 ```
 Our model gives (1.5, -0.8) a higher percentage of up than (1.2, 1.5) because it put more emphasis on the latest data point
+
+##4.6.3 - Linear Discriminant Analysis
+```{r}
+library(MASS)
+lda.fit=lda(Direction~Lag1+Lag2, daa=Smarket, subset=train)
+lda.fit
+```
+```{r}
+plot(lda.fit)
+```
+
