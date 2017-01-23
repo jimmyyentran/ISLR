@@ -110,10 +110,33 @@ Our model gives (1.5, -0.8) a higher percentage of up than (1.2, 1.5) because it
 ##4.6.3 - Linear Discriminant Analysis
 ```{r}
 library(MASS)
-lda.fit=lda(Direction~Lag1+Lag2, daa=Smarket, subset=train)
+lda.fit=lda(Direction~Lag1+Lag2, data=Smarket, subset=train)
 lda.fit
 ```
 ```{r}
 plot(lda.fit)
+```
+```{r}
+lda.pred=predict(lda.fit, Smarket.2005)
+names(lda.pred)
+```
+```{r}
+lda.class=lda.pred$class
+table(lda.class, Direction.2005)
+mean(lda.class==Direction.2005)
+```
+Almost identical to logistic regression
+```{r}
+sum(lda.pred$posterior[,1]>=.5)
+sum(lda.pred$posterior[,1]<.5)
+```
+Count 70 will decrease and 182 will increase
+```{r}
+lda.pred$posterior[1:20,1]
+lda.class[1:20]
+```
+Now let's see if there are any predictions that we have 90%+ of decreasing
+```{r}
+sum(lda.pred$posterior[,1]>.9)
 ```
 
