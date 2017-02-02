@@ -139,4 +139,11 @@ Now let's see if there are any predictions that we have 90%+ of decreasing
 ```{r}
 sum(lda.pred$posterior[,1]>.9)
 ```
+We got none... The highest is 52.02%
+
+##4.6.4 Quadratic Discriminant 
+```{r}
+qda.fit = qda(Direction~Lag1 + Lag2, data=Smarket, subset=train)
+qda.fit
+``
 
