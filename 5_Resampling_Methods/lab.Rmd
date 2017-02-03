@@ -1,0 +1,78 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+#5.3 Lab: Cross-Validation and Bootstrap
+##5.3.1 The Validation Set Approach
+```{r}
+library(ISLR)
+set.seed(1)
+train=sample(392,196)
+```
+We fit using the random 196 training set
+```{r}
+lm.fit=lm(mpg~horsepower, data=Auto, subset=train)
+```
+
+Calculate the MSE on the test data
+```{r}
+attach(Auto)
+mean((mpg-predict(lm.fit, Auto))[-train]^2)
+```
+
+Polynomial regression
+```{r}
+lm.fit2=lm(mpg~poly(horsepower,2), data=Auto, subset=train)
+mean((mpg-predict(lm.fit2, Auto))[-train]^2)
+```
+
+Cubic Regression
+```{r}
+lm.fit3=lm(mpg~poly(horsepower,3), data=Auto, subset=train)
+mean((mpg-predict(lm.fit3, Auto))[-train]^2)
+```
+
+Setting new seed value affects the error rates
+```{r}
+set.seed(2)
+train=sample(392,196)
+lm.fit=lm(mpg~horsepower, data=Auto, subset=train)
+print(mean((mpg-predict(lm.fit, Auto))[-train]^2))
+lm.fit2=lm(mpg~poly(horsepower,2), data=Auto, subset=train)
+mean((mpg-predict(lm.fit2, Auto))[-train]^2)
+lm.fit3=lm(mpg~poly(horsepower,3), data=Auto, subset=train)
+mean((mpg-predict(lm.fit3, Auto))[-train]^2)
+```
+Quadratic function of horsepower performs better
+
+##5.3.2 Leave-One-Out Cross-Validation
+```{r}
+library(boot)
+glm.fit=glm(mpg~horsepower, data=Auto)
+cv.err=cv.glm(Auto,glm.fit)
+cv.err$delta
+```
+glm() is use instead of lm() becase it can be used with cv.glm() to get LOOCV.
+delta has two values but they are the same
+```{r}
+cv.error=rep(0,5)
+for(i in 1:5){
+  glm.fit=glm(mpg~poly(horsepower,i),data=Auto)
+  cv.error[i]=cv.glm(Auto,glm.fit)$delta[1]
+}
+cv.error
+```
+There is good improvement from linear to quadratic but no further when using higher-order polynomials
+
+##5.3.3 k-Fold Cross-Validation
+```{r}
+set.seed(17)
+cv.error.10=rep(0,10)
+for(i in 1:10){
+  glm.fit=glm(mpg~poly(horsepower, i), data=Auto)
+  cv.error.10[i]=cv.glm(Auto, glm.fit, K=10)$delta[1]
+}
+cv.error.10
+```
+cv.glm() does not make use of faster LOOCV algorithm so k-Fold CV is faster in this case. 
+Higher-order polynomails still doesn't beat quadratic fit
