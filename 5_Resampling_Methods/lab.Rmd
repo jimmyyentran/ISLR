@@ -68,11 +68,76 @@ There is good improvement from linear to quadratic but no further when using hig
 ```{r}
 set.seed(17)
 cv.error.10=rep(0,10)
+cv.error.10_bias=rep(0,10)
 for(i in 1:10){
   glm.fit=glm(mpg~poly(horsepower, i), data=Auto)
   cv.error.10[i]=cv.glm(Auto, glm.fit, K=10)$delta[1]
+  cv.error.10_bias[i]=cv.glm(Auto, glm.fit, K=10)$delta[2]
 }
-cv.error.10
+print(cv.error.10)
+print(cv.error.10_bias)
 ```
 cv.glm() does not make use of faster LOOCV algorithm so k-Fold CV is faster in this case. 
 Higher-order polynomails still doesn't beat quadratic fit
+The second term is the bias-corrected version. Here it doesn't make much of a difference
+
+##5.3.4 The Bootstrap
+###Estimate accuracy of Statistic of Interest
+We first define our alpha function which calculates the fraction
+```{r}
+alpha.fn=function(data,index){
+  X=data$X[index]
+  Y=data$Y[index]
+  return((var(Y)-cov(X,Y))/(var(X)+var(Y)-2*cov(X,Y)))
+}
+```
+Estimate alpha using all of the 100 observations
+```{r}
+alpha.fn(Portfolio,1:100)
+```
+We resample the 100 observation to get a new value for alpha
+```{r}
+set.seed(1)
+alpha.fn(Portfolio, sample(100,100,replace=T))
+```
+We feed our data and the statistic function into a boot() function
+```{r}
+boot(Portfolio, alpha.fn, R=1000)
+```
+The a^ value is 0.575 and the SE(a^) is 0.0886
+###Estimate Accuracy of Linear regression model
+We first define the function that will calculate the linear fit for the data
+We then run this on the full Auto data set
+```{r}
+boot.fn=function(data,index)
+  return(coef(lm(mpg~horsepower, data=data,subset=index)))
+boot.fn(Auto, 1:392)
+```
+Bootstrapping for intercept and slope
+```{r}
+set.seed(1)
+boot.fn(Auto,sample(392,392,replace=T))
+boot.fn(Auto,sample(392,392,replace=T))
+```
+Use boot() to compute std of 1000 bootstrap estimates
+```{r}
+boot(Auto, boot.fn, 1000)
+```
+SE(^B_0) is 0.86 and SE(^B_1) is 0.0074
+
+We can also obtain the std. error of linear models by using the summary() function
+```{r}
+summary(lm(mpg~horsepower, data=Auto))$coef
+```
+Standard forumlas differ from the boostrap approach and is less accurate:
+-standard formula rely on unknown parameter sigma^2 to be correct
+-standard formula assume x_i are fixed and variability comes from variation in errors.
+
+We now fit the quadratic model
+```{r}
+boot.fm=function(data,index)
+  coefficients(lm(mpg~horsepower+I(horsepower^2),data=data,subset=index))
+set.seed(1)
+boot(Auto,boot.fn,1000)
+```
+

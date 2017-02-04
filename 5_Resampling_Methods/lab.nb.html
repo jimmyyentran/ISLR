@@ -301,26 +301,178 @@ cv.error</code></pre>
 <h2>5.3.3 k-Fold Cross-Validation</h2>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2V0LnNlZWQoMTcpXG5jdi5lcnJvci4xMD1yZXAoMCwxMClcbmZvcihpIGluIDE6MTApe1xuICBnbG0uZml0PWdsbShtcGd+cG9seShob3JzZXBvd2VyLCBpKSwgZGF0YT1BdXRvKVxuICBjdi5lcnJvci4xMFtpXT1jdi5nbG0oQXV0bywgZ2xtLmZpdCwgSz0xMCkkZGVsdGFbMV1cbn1cbmN2LmVycm9yLjEwXG5gYGAifQ== -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2V0LnNlZWQoMTcpXG5jdi5lcnJvci4xMD1yZXAoMCwxMClcbmN2LmVycm9yLjEwX2JpYXM9cmVwKDAsMTApXG5mb3IoaSBpbiAxOjEwKXtcbiAgZ2xtLmZpdD1nbG0obXBnfnBvbHkoaG9yc2Vwb3dlciwgaSksIGRhdGE9QXV0bylcbiAgY3YuZXJyb3IuMTBbaV09Y3YuZ2xtKEF1dG8sIGdsbS5maXQsIEs9MTApJGRlbHRhWzFdXG4gIGN2LmVycm9yLjEwX2JpYXNbaV09Y3YuZ2xtKEF1dG8sIGdsbS5maXQsIEs9MTApJGRlbHRhWzJdXG59XG5wcmludChjdi5lcnJvci4xMClcbmBgYCJ9 -->
 <pre class="r"><code>set.seed(17)
 cv.error.10=rep(0,10)
+cv.error.10_bias=rep(0,10)
 for(i in 1:10){
   glm.fit=glm(mpg~poly(horsepower, i), data=Auto)
   cv.error.10[i]=cv.glm(Auto, glm.fit, K=10)$delta[1]
+  cv.error.10_bias[i]=cv.glm(Auto, glm.fit, K=10)$delta[2]
 }
-cv.error.10</code></pre>
+print(cv.error.10)</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiIFsxXSAyNC4yMDUyMCAxOS4xODkyNCAxOS4zMDY2MiAxOS4zMzc5OSAxOC44NzkxMSAxOS4wMjEwMyAxOC44OTYwOSAxOS43MTIwMSAxOC45NTE0MCAxOS41MDE5NlxuIn0= -->
-<pre><code> [1] 24.20520 19.18924 19.30662 19.33799 18.87911 19.02103 18.89609 19.71201 18.95140 19.50196</code></pre>
+<!-- rnb-output-begin eyJkYXRhIjoiIFsxXSAyNC4yMDUyMCAxOS4yNDgxMyAxOS4yMzczNCAxOS40NjkzOCAxOS4wOTgwMCAxOS4xNDk0MiAxOS4wMDU5MCAxOC42ODE4NSAxOS4wNzc0MyAxOS42NTQzM1xuIn0= -->
+<pre><code> [1] 24.20520 19.24813 19.23734 19.46938 19.09800 19.14942 19.00590 18.68185 19.07743 19.65433</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucHJpbnQoY3YuZXJyb3IuMTBfYmlhcylcbmBgYCJ9 -->
+<pre class="r"><code>print(cv.error.10_bias)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiIFsxXSAyNC4yMjY3NyAxOS4yNTQ3MSAxOS4yMjY0MCAxOS40OTY0MyAxOS4xNTg2MCAxOC43NDcwNyAxOC45OTE0OCAxOS4yMzIzNiAxOS4wNjkyOSAxOS41MjI4NlxuIn0= -->
+<pre><code> [1] 24.22677 19.25471 19.22640 19.49643 19.15860 18.74707 18.99148 19.23236 19.06929 19.52286</code></pre>
 <!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>cv.glm() does not make use of faster LOOCV algorithm so k-Fold CV is faster in this case. Higher-order polynomails still doesn’t beat quadratic fit</p>
+<p>cv.glm() does not make use of faster LOOCV algorithm so k-Fold CV is faster in this case. Higher-order polynomails still doesn’t beat quadratic fit The second term is the bias-corrected version. Here it doesn’t make much of a difference</p>
+</div>
+<div id="the-bootstrap" class="section level2">
+<h2>5.3.4 The Bootstrap</h2>
+<div id="estimate-accuracy-of-statistic-of-interest" class="section level3">
+<h3>Estimate accuracy of Statistic of Interest</h3>
+<p>We first define our alpha function which calculates the fraction</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYWxwaGEuZm49ZnVuY3Rpb24oZGF0YSxpbmRleCl7XG4gIFg9ZGF0YSRYW2luZGV4XVxuICBZPWRhdGEkWVtpbmRleF1cbiAgcmV0dXJuKCh2YXIoWSktY292KFgsWSkpLyh2YXIoWCkrdmFyKFkpLTIqY292KFgsWSkpKVxufVxuYGBgIn0= -->
+<pre class="r"><code>alpha.fn=function(data,index){
+  X=data$X[index]
+  Y=data$Y[index]
+  return((var(Y)-cov(X,Y))/(var(X)+var(Y)-2*cov(X,Y)))
+}</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Estimate alpha using all of the 100 observations</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYWxwaGEuZm4oUG9ydGZvbGlvLDE6MTAwKVxuYGBgIn0= -->
+<pre class="r"><code>alpha.fn(Portfolio,1:100)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDAuNTc1ODMyMVxuIn0= -->
+<pre><code>[1] 0.5758321</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>We resample the 100 observation to get a new value for alpha</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2V0LnNlZWQoMSlcbmFscGhhLmZuKFBvcnRmb2xpbywgc2FtcGxlKDEwMCwxMDAscmVwbGFjZT1UKSlcbmBgYCJ9 -->
+<pre class="r"><code>set.seed(1)
+alpha.fn(Portfolio, sample(100,100,replace=T))</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDAuNTk2MzgzM1xuIn0= -->
+<pre><code>[1] 0.5963833</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>We feed our data and the statistic function into a boot() function</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYm9vdChQb3J0Zm9saW8sIGFscGhhLmZuLCBSPTEwMDApXG5gYGAifQ== -->
+<pre class="r"><code>boot(Portfolio, alpha.fn, R=1000)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5PUkRJTkFSWSBOT05QQVJBTUVUUklDIEJPT1RTVFJBUFxuXG5cbkNhbGw6XG5ib290KGRhdGEgPSBQb3J0Zm9saW8sIHN0YXRpc3RpYyA9IGFscGhhLmZuLCBSID0gMTAwMClcblxuXG5Cb290c3RyYXAgU3RhdGlzdGljcyA6XG4gICAgIG9yaWdpbmFsICAgICAgIGJpYXMgICAgc3RkLiBlcnJvclxudDEqIDAuNTc1ODMyMSA0Ljg3OTU4N2UtMDYgIDAuMDg4NzIyNzJcbiJ9 -->
+<pre><code>
+ORDINARY NONPARAMETRIC BOOTSTRAP
+
+
+Call:
+boot(data = Portfolio, statistic = alpha.fn, R = 1000)
+
+
+Bootstrap Statistics :
+     original       bias    std. error
+t1* 0.5758321 4.879587e-06  0.08872272</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>The a^ value is 0.575 and the SE(a^) is 0.0886 ###Estimate Accuracy of Linear regression model We first define the function that will calculate the linear fit for the data We then run this on the full Auto data set</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYm9vdC5mbj1mdW5jdGlvbihkYXRhLGluZGV4KVxuICByZXR1cm4oY29lZihsbShtcGd+aG9yc2Vwb3dlciwgZGF0YT1kYXRhLHN1YnNldD1pbmRleCkpKVxuYm9vdC5mbihBdXRvLCAxOjM5MilcbmBgYCJ9 -->
+<pre class="r"><code>boot.fn=function(data,index)
+  return(coef(lm(mpg~horsepower, data=data,subset=index)))
+boot.fn(Auto, 1:392)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiKEludGVyY2VwdCkgIGhvcnNlcG93ZXIgXG4gMzkuOTM1ODYxMCAgLTAuMTU3ODQ0NyBcbiJ9 -->
+<pre><code>(Intercept)  horsepower 
+ 39.9358610  -0.1578447 </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Bootstrapping for intercept and slope</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2V0LnNlZWQoMSlcbmJvb3QuZm4oQXV0byxzYW1wbGUoMzkyLDM5MixyZXBsYWNlPVQpKVxuYGBgIn0= -->
+<pre class="r"><code>set.seed(1)
+boot.fn(Auto,sample(392,392,replace=T))</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiKEludGVyY2VwdCkgIGhvcnNlcG93ZXIgXG4gMzguNzM4NzEzNCAgLTAuMTQ4MTk1MiBcbiJ9 -->
+<pre><code>(Intercept)  horsepower 
+ 38.7387134  -0.1481952 </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYm9vdC5mbihBdXRvLHNhbXBsZSgzOTIsMzkyLHJlcGxhY2U9VCkpXG5gYGAifQ== -->
+<pre class="r"><code>boot.fn(Auto,sample(392,392,replace=T))</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiKEludGVyY2VwdCkgIGhvcnNlcG93ZXIgXG4gNDAuMDM4MzA4NiAgLTAuMTU5NjEwNCBcbiJ9 -->
+<pre><code>(Intercept)  horsepower 
+ 40.0383086  -0.1596104 </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Use boot() to compute std of 1000 bootstrap estimates</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYm9vdChBdXRvLCBib290LmZuLCAxMDAwKVxuYGBgIn0= -->
+<pre class="r"><code>boot(Auto, boot.fn, 1000)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5PUkRJTkFSWSBOT05QQVJBTUVUUklDIEJPT1RTVFJBUFxuXG5cbkNhbGw6XG5ib290KGRhdGEgPSBBdXRvLCBzdGF0aXN0aWMgPSBib290LmZuLCBSID0gMTAwMClcblxuXG5Cb290c3RyYXAgU3RhdGlzdGljcyA6XG4gICAgICBvcmlnaW5hbCAgICAgIGJpYXMgICAgc3RkLiBlcnJvclxudDEqIDM5LjkzNTg2MTAgIDAuMDI5NzIxOTEgMC44NjAwMDc4OTZcbnQyKiAtMC4xNTc4NDQ3IC0wLjAwMDMwODIzIDAuMDA3NDA0NDY3XG4ifQ== -->
+<pre><code>
+ORDINARY NONPARAMETRIC BOOTSTRAP
+
+
+Call:
+boot(data = Auto, statistic = boot.fn, R = 1000)
+
+
+Bootstrap Statistics :
+      original      bias    std. error
+t1* 39.9358610  0.02972191 0.860007896
+t2* -0.1578447 -0.00030823 0.007404467</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>SE(^B_0) is 0.86 and SE(^B_1) is 0.0074</p>
+<p>We can also obtain the std. error of linear models by using the summary() function</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShsbShtcGd+aG9yc2Vwb3dlciwgZGF0YT1BdXRvKSkkY29lZlxuYGBgIn0= -->
+<pre class="r"><code>summary(lm(mpg~horsepower, data=Auto))$coef</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiICAgICAgICAgICAgICBFc3RpbWF0ZSAgU3RkLiBFcnJvciAgIHQgdmFsdWUgICAgICBQcig+fHR8KVxuKEludGVyY2VwdCkgMzkuOTM1ODYxMCAwLjcxNzQ5ODY1NiAgNTUuNjU5ODQgMS4yMjAzNjJlLTE4N1xuaG9yc2Vwb3dlciAgLTAuMTU3ODQ0NyAwLjAwNjQ0NTUwMSAtMjQuNDg5MTQgIDcuMDMxOTg5ZS04MVxuIn0= -->
+<pre><code>              Estimate  Std. Error   t value      Pr(&gt;|t|)
+(Intercept) 39.9358610 0.717498656  55.65984 1.220362e-187
+horsepower  -0.1578447 0.006445501 -24.48914  7.031989e-81</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Standard forumlas differ from the boostrap approach and is less accurate: -standard formula rely on unknown parameter sigma^2 to be correct -standard formula assume x_i are fixed and variability comes from variation in errors.</p>
+<p>We now fit the quadratic model</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYm9vdC5mbT1mdW5jdGlvbihkYXRhLGluZGV4KVxuICBjb2VmZmljaWVudHMobG0obXBnfmhvcnNlcG93ZXIrSShob3JzZXBvd2VyXjIpLGRhdGE9ZGF0YSxzdWJzZXQ9aW5kZXgpKVxuc2V0LnNlZWQoMSlcbmJvb3QoQXV0byxib290LmZuLDEwMDApXG5gYGAifQ== -->
+<pre class="r"><code>boot.fm=function(data,index)
+  coefficients(lm(mpg~horsepower+I(horsepower^2),data=data,subset=index))
+set.seed(1)
+boot(Auto,boot.fn,1000)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 </div>
 </div>
+</div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiUiBOb3RlYm9vayIKb3V0cHV0OiBodG1sX25vdGVib29rCi0tLQojNS4zIExhYjogQ3Jvc3MtVmFsaWRhdGlvbiBhbmQgQm9vdHN0cmFwCiMjNS4zLjEgVGhlIFZhbGlkYXRpb24gU2V0IEFwcHJvYWNoCmBgYHtyfQpsaWJyYXJ5KElTTFIpCnNldC5zZWVkKDEpCnRyYWluPXNhbXBsZSgzOTIsMTk2KQpgYGAKV2UgZml0IHVzaW5nIHRoZSByYW5kb20gMTk2IHRyYWluaW5nIHNldApgYGB7cn0KbG0uZml0PWxtKG1wZ35ob3JzZXBvd2VyLCBkYXRhPUF1dG8sIHN1YnNldD10cmFpbikKYGBgCgpDYWxjdWxhdGUgdGhlIE1TRSBvbiB0aGUgdGVzdCBkYXRhCmBgYHtyfQphdHRhY2goQXV0bykKbWVhbigobXBnLXByZWRpY3QobG0uZml0LCBBdXRvKSlbLXRyYWluXV4yKQpgYGAKClBvbHlub21pYWwgcmVncmVzc2lvbgpgYGB7cn0KbG0uZml0Mj1sbShtcGd+cG9seShob3JzZXBvd2VyLDIpLCBkYXRhPUF1dG8sIHN1YnNldD10cmFpbikKbWVhbigobXBnLXByZWRpY3QobG0uZml0MiwgQXV0bykpWy10cmFpbl1eMikKYGBgCgpDdWJpYyBSZWdyZXNzaW9uCmBgYHtyfQpsbS5maXQzPWxtKG1wZ35wb2x5KGhvcnNlcG93ZXIsMyksIGRhdGE9QXV0bywgc3Vic2V0PXRyYWluKQptZWFuKChtcGctcHJlZGljdChsbS5maXQzLCBBdXRvKSlbLXRyYWluXV4yKQpgYGAKClNldHRpbmcgbmV3IHNlZWQgdmFsdWUgYWZmZWN0cyB0aGUgZXJyb3IgcmF0ZXMKYGBge3J9CnNldC5zZWVkKDIpCnRyYWluPXNhbXBsZSgzOTIsMTk2KQpsbS5maXQ9bG0obXBnfmhvcnNlcG93ZXIsIGRhdGE9QXV0bywgc3Vic2V0PXRyYWluKQpwcmludChtZWFuKChtcGctcHJlZGljdChsbS5maXQsIEF1dG8pKVstdHJhaW5dXjIpKQpsbS5maXQyPWxtKG1wZ35wb2x5KGhvcnNlcG93ZXIsMiksIGRhdGE9QXV0bywgc3Vic2V0PXRyYWluKQptZWFuKChtcGctcHJlZGljdChsbS5maXQyLCBBdXRvKSlbLXRyYWluXV4yKQpsbS5maXQzPWxtKG1wZ35wb2x5KGhvcnNlcG93ZXIsMyksIGRhdGE9QXV0bywgc3Vic2V0PXRyYWluKQptZWFuKChtcGctcHJlZGljdChsbS5maXQzLCBBdXRvKSlbLXRyYWluXV4yKQpgYGAKUXVhZHJhdGljIGZ1bmN0aW9uIG9mIGhvcnNlcG93ZXIgcGVyZm9ybXMgYmV0dGVyCgojIzUuMy4yIExlYXZlLU9uZS1PdXQgQ3Jvc3MtVmFsaWRhdGlvbgpgYGB7cn0KbGlicmFyeShib290KQpnbG0uZml0PWdsbShtcGd+aG9yc2Vwb3dlciwgZGF0YT1BdXRvKQpjdi5lcnI9Y3YuZ2xtKEF1dG8sZ2xtLmZpdCkKY3YuZXJyJGRlbHRhCmBgYApnbG0oKSBpcyB1c2UgaW5zdGVhZCBvZiBsbSgpIGJlY2FzZSBpdCBjYW4gYmUgdXNlZCB3aXRoIGN2LmdsbSgpIHRvIGdldCBMT09DVi4KZGVsdGEgaGFzIHR3byB2YWx1ZXMgYnV0IHRoZXkgYXJlIHRoZSBzYW1lCmBgYHtyfQpjdi5lcnJvcj1yZXAoMCw1KQpmb3IoaSBpbiAxOjUpewogIGdsbS5maXQ9Z2xtKG1wZ35wb2x5KGhvcnNlcG93ZXIsaSksZGF0YT1BdXRvKQogIGN2LmVycm9yW2ldPWN2LmdsbShBdXRvLGdsbS5maXQpJGRlbHRhWzFdCn0KY3YuZXJyb3IKYGBgClRoZXJlIGlzIGdvb2QgaW1wcm92ZW1lbnQgZnJvbSBsaW5lYXIgdG8gcXVhZHJhdGljIGJ1dCBubyBmdXJ0aGVyIHdoZW4gdXNpbmcgaGlnaGVyLW9yZGVyIHBvbHlub21pYWxzCgojIzUuMy4zIGstRm9sZCBDcm9zcy1WYWxpZGF0aW9uCmBgYHtyfQpzZXQuc2VlZCgxNykKY3YuZXJyb3IuMTA9cmVwKDAsMTApCmZvcihpIGluIDE6MTApewogIGdsbS5maXQ9Z2xtKG1wZ35wb2x5KGhvcnNlcG93ZXIsIGkpLCBkYXRhPUF1dG8pCiAgY3YuZXJyb3IuMTBbaV09Y3YuZ2xtKEF1dG8sIGdsbS5maXQsIEs9MTApJGRlbHRhWzFdCn0KY3YuZXJyb3IuMTAKYGBgCmN2LmdsbSgpIGRvZXMgbm90IG1ha2UgdXNlIG9mIGZhc3RlciBMT09DViBhbGdvcml0aG0gc28gay1Gb2xkIENWIGlzIGZhc3RlciBpbiB0aGlzIGNhc2UuIApIaWdoZXItb3JkZXIgcG9seW5vbWFpbHMgc3RpbGwgZG9lc24ndCBiZWF0IHF1YWRyYXRpYyBmaXQK</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiUiBOb3RlYm9vayIKb3V0cHV0OiBodG1sX25vdGVib29rCi0tLQojNS4zIExhYjogQ3Jvc3MtVmFsaWRhdGlvbiBhbmQgQm9vdHN0cmFwCiMjNS4zLjEgVGhlIFZhbGlkYXRpb24gU2V0IEFwcHJvYWNoCmBgYHtyfQpsaWJyYXJ5KElTTFIpCnNldC5zZWVkKDEpCnRyYWluPXNhbXBsZSgzOTIsMTk2KQpgYGAKV2UgZml0IHVzaW5nIHRoZSByYW5kb20gMTk2IHRyYWluaW5nIHNldApgYGB7cn0KbG0uZml0PWxtKG1wZ35ob3JzZXBvd2VyLCBkYXRhPUF1dG8sIHN1YnNldD10cmFpbikKYGBgCgpDYWxjdWxhdGUgdGhlIE1TRSBvbiB0aGUgdGVzdCBkYXRhCmBgYHtyfQphdHRhY2goQXV0bykKbWVhbigobXBnLXByZWRpY3QobG0uZml0LCBBdXRvKSlbLXRyYWluXV4yKQpgYGAKClBvbHlub21pYWwgcmVncmVzc2lvbgpgYGB7cn0KbG0uZml0Mj1sbShtcGd+cG9seShob3JzZXBvd2VyLDIpLCBkYXRhPUF1dG8sIHN1YnNldD10cmFpbikKbWVhbigobXBnLXByZWRpY3QobG0uZml0MiwgQXV0bykpWy10cmFpbl1eMikKYGBgCgpDdWJpYyBSZWdyZXNzaW9uCmBgYHtyfQpsbS5maXQzPWxtKG1wZ35wb2x5KGhvcnNlcG93ZXIsMyksIGRhdGE9QXV0bywgc3Vic2V0PXRyYWluKQptZWFuKChtcGctcHJlZGljdChsbS5maXQzLCBBdXRvKSlbLXRyYWluXV4yKQpgYGAKClNldHRpbmcgbmV3IHNlZWQgdmFsdWUgYWZmZWN0cyB0aGUgZXJyb3IgcmF0ZXMKYGBge3J9CnNldC5zZWVkKDIpCnRyYWluPXNhbXBsZSgzOTIsMTk2KQpsbS5maXQ9bG0obXBnfmhvcnNlcG93ZXIsIGRhdGE9QXV0bywgc3Vic2V0PXRyYWluKQpwcmludChtZWFuKChtcGctcHJlZGljdChsbS5maXQsIEF1dG8pKVstdHJhaW5dXjIpKQpsbS5maXQyPWxtKG1wZ35wb2x5KGhvcnNlcG93ZXIsMiksIGRhdGE9QXV0bywgc3Vic2V0PXRyYWluKQptZWFuKChtcGctcHJlZGljdChsbS5maXQyLCBBdXRvKSlbLXRyYWluXV4yKQpsbS5maXQzPWxtKG1wZ35wb2x5KGhvcnNlcG93ZXIsMyksIGRhdGE9QXV0bywgc3Vic2V0PXRyYWluKQptZWFuKChtcGctcHJlZGljdChsbS5maXQzLCBBdXRvKSlbLXRyYWluXV4yKQpgYGAKUXVhZHJhdGljIGZ1bmN0aW9uIG9mIGhvcnNlcG93ZXIgcGVyZm9ybXMgYmV0dGVyCgojIzUuMy4yIExlYXZlLU9uZS1PdXQgQ3Jvc3MtVmFsaWRhdGlvbgpgYGB7cn0KbGlicmFyeShib290KQpnbG0uZml0PWdsbShtcGd+aG9yc2Vwb3dlciwgZGF0YT1BdXRvKQpjdi5lcnI9Y3YuZ2xtKEF1dG8sZ2xtLmZpdCkKY3YuZXJyJGRlbHRhCmBgYApnbG0oKSBpcyB1c2UgaW5zdGVhZCBvZiBsbSgpIGJlY2FzZSBpdCBjYW4gYmUgdXNlZCB3aXRoIGN2LmdsbSgpIHRvIGdldCBMT09DVi4KZGVsdGEgaGFzIHR3byB2YWx1ZXMgYnV0IHRoZXkgYXJlIHRoZSBzYW1lCmBgYHtyfQpjdi5lcnJvcj1yZXAoMCw1KQpmb3IoaSBpbiAxOjUpewogIGdsbS5maXQ9Z2xtKG1wZ35wb2x5KGhvcnNlcG93ZXIsaSksZGF0YT1BdXRvKQogIGN2LmVycm9yW2ldPWN2LmdsbShBdXRvLGdsbS5maXQpJGRlbHRhWzFdCn0KY3YuZXJyb3IKYGBgClRoZXJlIGlzIGdvb2QgaW1wcm92ZW1lbnQgZnJvbSBsaW5lYXIgdG8gcXVhZHJhdGljIGJ1dCBubyBmdXJ0aGVyIHdoZW4gdXNpbmcgaGlnaGVyLW9yZGVyIHBvbHlub21pYWxzCgojIzUuMy4zIGstRm9sZCBDcm9zcy1WYWxpZGF0aW9uCmBgYHtyfQpzZXQuc2VlZCgxNykKY3YuZXJyb3IuMTA9cmVwKDAsMTApCmN2LmVycm9yLjEwX2JpYXM9cmVwKDAsMTApCmZvcihpIGluIDE6MTApewogIGdsbS5maXQ9Z2xtKG1wZ35wb2x5KGhvcnNlcG93ZXIsIGkpLCBkYXRhPUF1dG8pCiAgY3YuZXJyb3IuMTBbaV09Y3YuZ2xtKEF1dG8sIGdsbS5maXQsIEs9MTApJGRlbHRhWzFdCiAgY3YuZXJyb3IuMTBfYmlhc1tpXT1jdi5nbG0oQXV0bywgZ2xtLmZpdCwgSz0xMCkkZGVsdGFbMl0KfQpwcmludChjdi5lcnJvci4xMCkKcHJpbnQoY3YuZXJyb3IuMTBfYmlhcykKYGBgCmN2LmdsbSgpIGRvZXMgbm90IG1ha2UgdXNlIG9mIGZhc3RlciBMT09DViBhbGdvcml0aG0gc28gay1Gb2xkIENWIGlzIGZhc3RlciBpbiB0aGlzIGNhc2UuIApIaWdoZXItb3JkZXIgcG9seW5vbWFpbHMgc3RpbGwgZG9lc24ndCBiZWF0IHF1YWRyYXRpYyBmaXQKVGhlIHNlY29uZCB0ZXJtIGlzIHRoZSBiaWFzLWNvcnJlY3RlZCB2ZXJzaW9uLiBIZXJlIGl0IGRvZXNuJ3QgbWFrZSBtdWNoIG9mIGEgZGlmZmVyZW5jZQoKIyM1LjMuNCBUaGUgQm9vdHN0cmFwCiMjI0VzdGltYXRlIGFjY3VyYWN5IG9mIFN0YXRpc3RpYyBvZiBJbnRlcmVzdApXZSBmaXJzdCBkZWZpbmUgb3VyIGFscGhhIGZ1bmN0aW9uIHdoaWNoIGNhbGN1bGF0ZXMgdGhlIGZyYWN0aW9uCmBgYHtyfQphbHBoYS5mbj1mdW5jdGlvbihkYXRhLGluZGV4KXsKICBYPWRhdGEkWFtpbmRleF0KICBZPWRhdGEkWVtpbmRleF0KICByZXR1cm4oKHZhcihZKS1jb3YoWCxZKSkvKHZhcihYKSt2YXIoWSktMipjb3YoWCxZKSkpCn0KYGBgCkVzdGltYXRlIGFscGhhIHVzaW5nIGFsbCBvZiB0aGUgMTAwIG9ic2VydmF0aW9ucwpgYGB7cn0KYWxwaGEuZm4oUG9ydGZvbGlvLDE6MTAwKQpgYGAKV2UgcmVzYW1wbGUgdGhlIDEwMCBvYnNlcnZhdGlvbiB0byBnZXQgYSBuZXcgdmFsdWUgZm9yIGFscGhhCmBgYHtyfQpzZXQuc2VlZCgxKQphbHBoYS5mbihQb3J0Zm9saW8sIHNhbXBsZSgxMDAsMTAwLHJlcGxhY2U9VCkpCmBgYApXZSBmZWVkIG91ciBkYXRhIGFuZCB0aGUgc3RhdGlzdGljIGZ1bmN0aW9uIGludG8gYSBib290KCkgZnVuY3Rpb24KYGBge3J9CmJvb3QoUG9ydGZvbGlvLCBhbHBoYS5mbiwgUj0xMDAwKQpgYGAKVGhlIGFeIHZhbHVlIGlzIDAuNTc1IGFuZCB0aGUgU0UoYV4pIGlzIDAuMDg4NgojIyNFc3RpbWF0ZSBBY2N1cmFjeSBvZiBMaW5lYXIgcmVncmVzc2lvbiBtb2RlbApXZSBmaXJzdCBkZWZpbmUgdGhlIGZ1bmN0aW9uIHRoYXQgd2lsbCBjYWxjdWxhdGUgdGhlIGxpbmVhciBmaXQgZm9yIHRoZSBkYXRhCldlIHRoZW4gcnVuIHRoaXMgb24gdGhlIGZ1bGwgQXV0byBkYXRhIHNldApgYGB7cn0KYm9vdC5mbj1mdW5jdGlvbihkYXRhLGluZGV4KQogIHJldHVybihjb2VmKGxtKG1wZ35ob3JzZXBvd2VyLCBkYXRhPWRhdGEsc3Vic2V0PWluZGV4KSkpCmJvb3QuZm4oQXV0bywgMTozOTIpCmBgYApCb290c3RyYXBwaW5nIGZvciBpbnRlcmNlcHQgYW5kIHNsb3BlCmBgYHtyfQpzZXQuc2VlZCgxKQpib290LmZuKEF1dG8sc2FtcGxlKDM5MiwzOTIscmVwbGFjZT1UKSkKYm9vdC5mbihBdXRvLHNhbXBsZSgzOTIsMzkyLHJlcGxhY2U9VCkpCmBgYApVc2UgYm9vdCgpIHRvIGNvbXB1dGUgc3RkIG9mIDEwMDAgYm9vdHN0cmFwIGVzdGltYXRlcwpgYGB7cn0KYm9vdChBdXRvLCBib290LmZuLCAxMDAwKQpgYGAKU0UoXkJfMCkgaXMgMC44NiBhbmQgU0UoXkJfMSkgaXMgMC4wMDc0CgpXZSBjYW4gYWxzbyBvYnRhaW4gdGhlIHN0ZC4gZXJyb3Igb2YgbGluZWFyIG1vZGVscyBieSB1c2luZyB0aGUgc3VtbWFyeSgpIGZ1bmN0aW9uCmBgYHtyfQpzdW1tYXJ5KGxtKG1wZ35ob3JzZXBvd2VyLCBkYXRhPUF1dG8pKSRjb2VmCmBgYApTdGFuZGFyZCBmb3J1bWxhcyBkaWZmZXIgZnJvbSB0aGUgYm9vc3RyYXAgYXBwcm9hY2ggYW5kIGlzIGxlc3MgYWNjdXJhdGU6Ci1zdGFuZGFyZCBmb3JtdWxhIHJlbHkgb24gdW5rbm93biBwYXJhbWV0ZXIgc2lnbWFeMiB0byBiZSBjb3JyZWN0Ci1zdGFuZGFyZCBmb3JtdWxhIGFzc3VtZSB4X2kgYXJlIGZpeGVkIGFuZCB2YXJpYWJpbGl0eSBjb21lcyBmcm9tIHZhcmlhdGlvbiBpbiBlcnJvcnMuCgpXZSBub3cgZml0IHRoZSBxdWFkcmF0aWMgbW9kZWwKYGBge3J9CmJvb3QuZm09ZnVuY3Rpb24oZGF0YSxpbmRleCkKICBjb2VmZmljaWVudHMobG0obXBnfmhvcnNlcG93ZXIrSShob3JzZXBvd2VyXjIpLGRhdGE9ZGF0YSxzdWJzZXQ9aW5kZXgpKQpzZXQuc2VlZCgxKQpib290KEF1dG8sYm9vdC5mbiwxMDAwKQpgYGAKCg==</div>
 
 
 
